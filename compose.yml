@@ -7,16 +7,16 @@ services:
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:${TRAEFIK_HTTP_PORT}"  # Port HTTP động từ .env
+      - "--entrypoints.web.address=:${TRAEFIK_HTTP_PORT}"
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      - "--entrypoints.websecure.address=:${TRAEFIK_HTTPS_PORT}"  # Port HTTPS động từ .env
+      - "--entrypoints.websecure.address=:${TRAEFIK_HTTPS_PORT}"
       - "--certificatesresolvers.mytlschallenge.acme.tlschallenge=true"
       - "--certificatesresolvers.mytlschallenge.acme.email=${SSL_EMAIL}"
       - "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
     ports:
-      - "${TRAEFIK_HTTP_PORT}:${TRAEFIK_HTTP_PORT}"  # Ánh xạ port HTTP động
-      - "${TRAEFIK_HTTPS_PORT}:${TRAEFIK_HTTPS_PORT}"  # Ánh xạ port HTTPS động
+      - "${TRAEFIK_HTTP_PORT}:${TRAEFIK_HTTP_PORT}"
+      - "${TRAEFIK_HTTPS_PORT}:${TRAEFIK_HTTPS_PORT}"
     volumes:
       - traefik_data:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -26,7 +26,7 @@ services:
     container_name: n8n_postgres
     restart: unless-stopped
     ports:
-      - "${POSTGRES_PORT}:5432"  # Port động từ .env
+      - "${POSTGRES_PORT}:5432"
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -46,6 +46,8 @@ services:
       - QDRANT__DATABASE__USER=${POSTGRES_USER}
       - QDRANT__DATABASE__PASSWORD=${POSTGRES_PASSWORD}
       - N8N_URL=http://n8n:5678
+    volumes:
+      - qdrant_data:/qdrant/storage  # Persist Qdrant data
     depends_on:
       - postgres
 
@@ -89,6 +91,10 @@ services:
       - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
       - DB_POSTGRESDB_USER=${POSTGRES_USER}
       - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      - N8N_RUNNERS_ENABLED=true  # Address deprecation
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false  # Allow env access in Code Node
+      - N8N_GIT_NODE_DISABLE_BARE_REPOS=true  # Disable bare repos in Git Node
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true  # Enforce correct permissions
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:
@@ -98,4 +104,5 @@ services:
 volumes:
   postgres_data:
   n8n_data:
-  traefik_data: 
+  traefik_data:
+  qdrant_data:  # Added for Qdrant persistence
