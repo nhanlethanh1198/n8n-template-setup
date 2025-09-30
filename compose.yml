@@ -7,16 +7,16 @@ services:
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.address=:${TRAEFIK_HTTP_PORT}"  # Port HTTP động từ .env
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.address=:${TRAEFIK_HTTPS_PORT}"  # Port HTTPS động từ .env
       - "--certificatesresolvers.mytlschallenge.acme.tlschallenge=true"
       - "--certificatesresolvers.mytlschallenge.acme.email=${SSL_EMAIL}"
       - "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
     ports:
-      - "80:80"
-      - "443:443"
+      - "${TRAEFIK_HTTP_PORT}:${TRAEFIK_HTTP_PORT}"  # Ánh xạ port HTTP động
+      - "${TRAEFIK_HTTPS_PORT}:${TRAEFIK_HTTPS_PORT}"  # Ánh xạ port HTTPS động
     volumes:
       - traefik_data:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -25,6 +25,8 @@ services:
     image: postgres:15
     container_name: n8n_postgres
     restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT}:5432"  # Port động từ .env
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -33,7 +35,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   qdrant:
-    image: qdrant/qdrant:latest  # Sửa từ qvantel/qrant thành qdrant/qdrant (giả sử đây là vector DB bạn cần)
+    image: qdrant/qdrant:latest
     container_name: qdrant
     restart: unless-stopped
     environment:
@@ -43,7 +45,7 @@ services:
       - QDRANT__DATABASE__NAME=${POSTGRES_DB}
       - QDRANT__DATABASE__USER=${POSTGRES_USER}
       - QDRANT__DATABASE__PASSWORD=${POSTGRES_PASSWORD}
-      - N8N_URL=http://n8n:5678  # Dùng tên service nội bộ
+      - N8N_URL=http://n8n:5678
     depends_on:
       - postgres
 
@@ -52,7 +54,7 @@ services:
     container_name: n8n
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5678:5678"  # Chỉ expose cho localhost, Traefik sẽ xử lý proxy
+      - "127.0.0.1:5678:5678"
     labels:
       - traefik.enable=true
       - traefik.http.routers.n8n.rule=Host(`${SUBDOMAIN}.${DOMAIN_NAME}`)
@@ -75,9 +77,9 @@ services:
       - N8N_HOST=${SUBDOMAIN}.${DOMAIN_NAME}
       - N8N_PORT=5678
       - N8N_PROTOCOL=https
-      - N8N_EDITOR_BASE_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}
-      - N8N_API_BASE_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}/api
-      - WEBHOOK_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}/
+      - N8N_EDITOR_BASE_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}:${TRAEFIK_HTTPS_PORT}
+      - N8N_API_BASE_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}:${TRAEFIK_HTTPS_PORT}/api
+      - WEBHOOK_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}:${TRAEFIK_HTTPS_PORT}/
       - N8N_DEFAULT_WORKFLOW_ACTIVE=true
       - N8N_LOG_LEVEL=info
       - N8N_TELEMETRY_DISABLED=true
@@ -96,4 +98,4 @@ services:
 volumes:
   postgres_data:
   n8n_data:
-  traefik_data:
+  traefik_data: 
