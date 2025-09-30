@@ -11,9 +11,10 @@ services:
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--entrypoints.websecure.address=:${TRAEFIK_HTTPS_PORT}"
-      - "--certificatesresolvers.mytlschallenge.acme.tlschallenge=true"
-      - "--certificatesresolvers.mytlschallenge.acme.email=${SSL_EMAIL}"
-      - "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.myhttpchallenge.acme.httpchallenge=true"
+      - "--certificatesresolvers.myhttpchallenge.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.myhttpchallenge.acme.email=${SSL_EMAIL}"
+      - "--certificatesresolvers.myhttpchallenge.acme.storage=/letsencrypt/acme.json"
     ports:
       - "${TRAEFIK_HTTP_PORT}:${TRAEFIK_HTTP_PORT}"
       - "${TRAEFIK_HTTPS_PORT}:${TRAEFIK_HTTPS_PORT}"
@@ -47,7 +48,7 @@ services:
       - QDRANT__DATABASE__PASSWORD=${POSTGRES_PASSWORD}
       - N8N_URL=http://n8n:5678
     volumes:
-      - qdrant_data:/qdrant/storage  # Persist Qdrant data
+      - qdrant_data:/qdrant/storage
     depends_on:
       - postgres
 
@@ -62,7 +63,7 @@ services:
       - traefik.http.routers.n8n.rule=Host(`${SUBDOMAIN}.${DOMAIN_NAME}`)
       - traefik.http.routers.n8n.tls=true
       - traefik.http.routers.n8n.entrypoints=web,websecure
-      - traefik.http.routers.n8n.tls.certresolver=mytlschallenge
+      - traefik.http.routers.n8n.tls.certresolver=myhttpchallenge
       - traefik.http.middlewares.n8n.headers.SSLRedirect=true
       - traefik.http.middlewares.n8n.headers.STSSeconds=315360000
       - traefik.http.middlewares.n8n.headers.browserXSSFilter=true
@@ -91,10 +92,10 @@ services:
       - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
       - DB_POSTGRESDB_USER=${POSTGRES_USER}
       - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
-      - N8N_RUNNERS_ENABLED=true  # Address deprecation
-      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false  # Allow env access in Code Node
-      - N8N_GIT_NODE_DISABLE_BARE_REPOS=true  # Disable bare repos in Git Node
-      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true  # Enforce correct permissions
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - N8N_GIT_NODE_DISABLE_BARE_REPOS=true
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:
@@ -105,4 +106,4 @@ volumes:
   postgres_data:
   n8n_data:
   traefik_data:
-  qdrant_data:  # Added for Qdrant persistence
+  qdrant_data:
